@@ -18,6 +18,10 @@ PRODUCT_PRODUCT_PROPERTIES += \
     persist.sys.dun.override=0 \
     persist.sys.disable_rescue=true
 
+# BtHelper
+PRODUCT_PACKAGES += \
+    BtHelper
+
 # Disable async MTE on a few processes
 PRODUCT_SYSTEM_EXT_PROPERTIES += \
     persist.arm64.memtag.app.com.android.se=off \
