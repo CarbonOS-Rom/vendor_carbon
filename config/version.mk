@@ -1,45 +1,77 @@
-PRODUCT_VERSION_MAJOR = 24
+PRODUCT_VERSION_MAJOR = 16
 PRODUCT_VERSION_MINOR = 0
 
-ifeq ($(LINEAGE_VERSION_APPEND_TIME_OF_DAY),true)
-    LINEAGE_BUILD_DATE := $(shell date -u +%Y%m%d_%H%M%S)
+# Increase Carbon Version with each major release.
+CARBON_VERSION_DISPLAY := 
+CARBON_FLAVOR := 
+CARBON_VERSION_BASE := 
+CARBON_CODENAME := 
+CARBON_BUILD_TYPE ?= Unofficial
+
+CARBON_BUILD_DATE := $(shell date -u +%Y%m%d)
+
+CURRENT_DEVICE := $(shell echo "$(TARGET_PRODUCT)" | cut -d'_' -f 2,3)
+OFFICIAL_MAINTAINERS := $(shell cat carbon-maintainers/carbon.maintainers)
+OFFICIAL_DEVICES := $(shell cat carbon-maintainers/carbon.devices)
+
+ifeq ($(findstring $(LINEAGE_BUILD), $(OFFICIAL_DEVICES)),)
+  # Device not listed as official
+  CARBON_BUILD_TYPE := UNOFFICIAL
 else
-    LINEAGE_BUILD_DATE := $(shell date -u +%Y%m%d)
+  # Check if builder is an official maintainer
+  ifeq ($(findstring $(CARBONOS_MAINTAINER), $(OFFICIAL_MAINTAINERS)),)
+    # Builder not an official maintainer, warn and set unofficial
+    $(warning **********************************************************************)
+    $(warning *   There is already an official maintainer for $(LINEAGE_BUILD)    *)
+    $(warning *              Setting build type to UNOFFICIAL                      *)
+    $(warning **********************************************************************)
+    CARBON_BUILD_TYPE := UNOFFICIAL
+  else
+    # Official maintainer building official device
+    CARBON_BUILD_TYPE := OFFICIAL
+  endif
 endif
 
-# Set LINEAGE_BUILDTYPE from the env RELEASE_TYPE, for jenkins compat
-
-ifndef LINEAGE_BUILDTYPE
-    ifdef RELEASE_TYPE
-        # Starting with "LINEAGE_" is optional
-        RELEASE_TYPE := $(shell echo $(RELEASE_TYPE) | sed -e 's|^LINEAGE_||g')
-        LINEAGE_BUILDTYPE := $(RELEASE_TYPE)
-    endif
+# Enforce official build for official maintainers on official devices
+ifeq ($(CARBON_BUILD_TYPE), OFFICIAL)
+  ifeq ($(findstring $(LINEAGE_BUILD), $(OFFICIAL_DEVICES)),)
+    # Shouldn't reach here, error for unexpected situation
+    $(error **********************************************************)
+    $(error *     A violation has been detected, aborting build      *)
+    $(error **********************************************************)
+  endif
 endif
 
-# Filter out random types, so it'll reset to UNOFFICIAL
-ifeq ($(filter RELEASE NIGHTLY SNAPSHOT EXPERIMENTAL,$(LINEAGE_BUILDTYPE)),)
-    LINEAGE_BUILDTYPE := UNOFFICIAL
-    LINEAGE_EXTRAVERSION :=
-endif
 
-ifeq ($(LINEAGE_BUILDTYPE), UNOFFICIAL)
-    ifneq ($(TARGET_UNOFFICIAL_BUILD_ID),)
-        LINEAGE_EXTRAVERSION := -$(TARGET_UNOFFICIAL_BUILD_ID)
-    endif
-endif
-
-LINEAGE_VERSION_SUFFIX := $(LINEAGE_BUILD_DATE)-$(LINEAGE_BUILDTYPE)$(LINEAGE_EXTRAVERSION)-$(LINEAGE_BUILD)
+# Carbon Packages
+#ifeq ($(WITH_GMS),true)
+#  ifeq ($(TARGET_USES_MINI_GAPPS), true)
+#    CARBON_PACKAGE_TYPE ?= MINI
+#  else ifeq ($(TARGET_USES_PICO_GAPPS), true)
+#    CARBON_PACKAGE_TYPE ?= PICO
+#  else
+#    CARBON_PACKAGE_TYPE ?= GAPPS
+#  endif
+#else
+#  CARBON_PACKAGE_TYPE ?= VANILLA
+#endif
 
 # Internal version
-LINEAGE_VERSION := $(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(LINEAGE_VERSION_SUFFIX)
+LINEAGE_VERSION := CarbonOS-$(CARBON_VERSION_BASE)-$(CARBON_CODENAME)-$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(CARBON_PACKAGE_TYPE)-$(shell date +%Y%m%d-%H%M)-$(LINEAGE_BUILD)-$(CARBON_BUILD_TYPE)
 
 # Display version
-LINEAGE_DISPLAY_VERSION := $(PRODUCT_VERSION_MAJOR)-$(LINEAGE_VERSION_SUFFIX)
+LINEAGE_DISPLAY_VERSION := CarbonOS-$(CARBON_VERSION_BASE)-$(CARBON_CODENAME)-$(CARBON_PACKAGE_TYPE)-$(LINEAGE_BUILD)-$(CARBON_BUILD_TYPE)-$(shell date +%Y%m%d-%H%M)
 
 # LineageOS version properties
-PRODUCT_PRODUCT_PROPERTIES += \
-    ro.lineage.version=$(LINEAGE_VERSION) \
-    ro.lineage.display.version=$(LINEAGE_DISPLAY_VERSION) \
-    ro.lineage.build.version=$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR) \
-    ro.lineage.releasetype=$(LINEAGE_BUILDTYPE)
+PRODUCT_SYSTEM_PROPERTIES += \
+    ro.carbon.version=$(LINEAGE_VERSION) \
+    ro.carbon.display.version=$(LINEAGE_DISPLAY_VERSION) \
+    ro.carbon.build.version=$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR) \
+    ro.modversion=$(CARBON_VERSION) \
+    ro.carbon.packagetype=$(CARBON_PACKAGE_TYPE) \
+    ro.carbon.version_display=$(CARBON_VERSION_DISPLAY) \
+    ro.carbon.version.base=$(CARBON_VERSION_BASE) \
+    ro.carbonos.maintainer=$(CARBONOS_MAINTAINER) \
+    ro.carbonos.flavor=$(CARBON_FLAVOR) \
+    ro.carbon.codename=$(CARBON_CODENAME) \
+    ro.carbon.buildtype=$(CARBON_BUILD_TYPE)
