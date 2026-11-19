@@ -1,11 +1,11 @@
-PRODUCT_VERSION_MAJOR = 16
+PRODUCT_VERSION_MAJOR = 17
 PRODUCT_VERSION_MINOR = 0
 
 # Increase Carbon Version with each major release.
-CARBON_VERSION_DISPLAY := 
-CARBON_FLAVOR := 
-CARBON_VERSION_BASE := 
-CARBON_CODENAME := 
+CARBON_VERSION_DISPLAY := 1.0-Crystal
+CARBON_FLAVOR := Crystal 
+CARBON_VERSION_BASE := 1.0
+CARBON_CODENAME := Crystal
 CARBON_BUILD_TYPE ?= Unofficial
 
 CARBON_BUILD_DATE := $(shell date -u +%Y%m%d)
@@ -43,18 +43,14 @@ ifeq ($(CARBON_BUILD_TYPE), OFFICIAL)
 endif
 
 
-# Carbon Packages
-#ifeq ($(WITH_GMS),true)
-#  ifeq ($(TARGET_USES_MINI_GAPPS), true)
-#    CARBON_PACKAGE_TYPE ?= MINI
-#  else ifeq ($(TARGET_USES_PICO_GAPPS), true)
-#    CARBON_PACKAGE_TYPE ?= PICO
-#  else
-#    CARBON_PACKAGE_TYPE ?= GAPPS
-#  endif
-#else
-#  CARBON_PACKAGE_TYPE ?= VANILLA
-#endif
+# GMS
+WITH_GMS ?= false
+ifeq ($(WITH_GMS),true)
+    $(call inherit-product, vendor/gms/products/gms.mk)
+    CARBON_PACKAGE_TYPE := GAPPS
+else
+    CARBON_PACKAGE_TYPE := VANILLA
+endif
 
 # Internal version
 LINEAGE_VERSION := CarbonOS-$(CARBON_VERSION_BASE)-$(CARBON_CODENAME)-$(PRODUCT_VERSION_MAJOR).$(PRODUCT_VERSION_MINOR)-$(CARBON_PACKAGE_TYPE)-$(shell date +%Y%m%d-%H%M)-$(LINEAGE_BUILD)-$(CARBON_BUILD_TYPE)
